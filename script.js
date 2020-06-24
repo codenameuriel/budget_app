@@ -27,7 +27,17 @@ let UIController = (function() {
 })();
 
 let appController = (function(budgetCtrl, UICtrl) {
-  let DOMElements = UICtrl.getDOMElements();
+  let setEventListeners = function() {
+    let DOMElements = UICtrl.getDOMElements();
+
+    document.querySelector(DOMElements.addBtn).addEventListener('click', appCtrlAddItem);
+
+    // event listener for key press which occurs globally and not on a particular element
+    document.addEventListener('keypress', function(event) {
+      if (event.keyCode === 13) appCtrlAddItem(); 
+    });
+  };
+  
   let appCtrlAddItem = function() {
       // 1. Get input field value
       let input = UICtrl.getInput();
@@ -36,16 +46,14 @@ let appController = (function(budgetCtrl, UICtrl) {
       // 3. Add item to UI
       // 4. calculate the budget
       // 5. Display the budget
-  }
-
-  document.querySelector(DOMElements.addBtn).addEventListener('click', appCtrlAddItem);
-
-  // event listener for key press which occurs globally and not on a particular element
-  document.addEventListener('keypress', function(event) {
-    if (event.keyCode === 13) appCtrlAddItem(); 
-  });
+  };
 
   return {
-    // some code
+    init: function() {
+      console.log('App has started.');
+      setEventListeners();
+    }
   };
 })(budgetController, UIController);
+
+appController.init();
