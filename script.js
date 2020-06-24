@@ -8,7 +8,8 @@ let UIController = (function() {
   let DOMElements = {
     selectType: '.add__type',
     inputDescription: '.add__description',
-    inputValue: 'add__value'
+    inputValue: '.add__value',
+    addBtn: '.add__btn'
   };
 
   return {
@@ -18,11 +19,15 @@ let UIController = (function() {
         inputDescription: document.querySelector(DOMElements.inputDescription).value,
         inputValue: document.querySelector(DOMElements.inputValue).value
       };
+    },
+    getDOMElements: function() {
+      return DOMElements;
     }
   };
 })();
 
 let appController = (function(budgetCtrl, UICtrl) {
+  let DOMElements = UICtrl.getDOMElements();
   let appCtrlAddItem = function() {
       // 1. Get input field value
       let input = UICtrl.getInput();
@@ -33,7 +38,7 @@ let appController = (function(budgetCtrl, UICtrl) {
       // 5. Display the budget
   }
 
-  document.querySelector('.add__btn').addEventListener('click', appCtrlAddItem);
+  document.querySelector(DOMElements.addBtn).addEventListener('click', appCtrlAddItem);
 
   // event listener for key press which occurs globally and not on a particular element
   document.addEventListener('keypress', function(event) {
