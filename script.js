@@ -25,6 +25,9 @@ let budgetController = (function() {
   };
 
   return {
+    readData: function() {
+      console.log(data);
+    },
     addTransaction: function(type, des, val) {
       let newTransaction, ID;
       
@@ -61,7 +64,7 @@ let UIController = (function() {
       return {
         selectType: document.querySelector(DOMElements.selectType).value,
         inputDescription: document.querySelector(DOMElements.inputDescription).value,
-        inputValue: document.querySelector(DOMElements.inputValue).value
+        inputValue: parseFloat(document.querySelector(DOMElements.inputValue).value)
       };
     },
     getDOMElements: function() {
@@ -140,15 +143,26 @@ let appController = (function(budgetCtrl, UICtrl) {
     // 1. Get input field value
     input = UICtrl.getInputValues();
     console.log(input);
-    // 2. Add item to budget controller
-    newTransaction = budgetCtrl.addTransaction(input.selectType, input.inputDescription, input.inputValue);
-    console.log(newTransaction);
-    // 3. Add item to UI
-    UICtrl.renderTransactionHTML(newTransaction, input.selectType);
-    // 4. Clear input fields
-    UICtrl.clearFields();
-    // 5. calculate the budget
-    // 6. Display the budget
+
+    // transaction will be added unless there is no description and the value field is empty or 0
+    if (input.inputDescription !== '' && !isNaN(input.inputValue) && input.inputValue > 0) {
+      // 2. Add item to budget controller
+      newTransaction = budgetCtrl.addTransaction(input.selectType, input.inputDescription, input.inputValue);
+      console.log(newTransaction);
+      // 3. Add item to UI
+      UICtrl.renderTransactionHTML(newTransaction, input.selectType);
+      // 4. Clear input fields
+      UICtrl.clearFields();
+      // 5. Calculate and update budget
+      updateBudget();
+    }
+  };
+
+  let updateBudget = function() {
+    // 1. calculate the budget
+
+    // 2. Return the budget
+    // 2. Display the budget
   };
 
   return {
