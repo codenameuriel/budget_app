@@ -21,8 +21,17 @@ let budgetController = (function() {
     totals: {
       exp: 0,
       inc: 0
-    }
+    },
+    budget: 0,
+    // -1 to represent non-existent value
+    percentage: -1
   };
+
+  let calculateTotal = function(type) {
+    let sum = 0;
+    data.transactions[type].forEach(transaction => sum += transaction.value);
+    data.totals[type] = sum;
+  }
 
   return {
     readData: function() {
@@ -45,6 +54,27 @@ let budgetController = (function() {
 
       data.transactions[type].push(newTransaction);
       return newTransaction;
+    },
+    calculateBudget: function() {
+      // calculate total income and expenses
+      calculateTotal('exp');
+      calculateTotal('inc');
+      // calculate budget (income - expenses)
+      data.budget = data.totals.inc - data.totals.exp;
+      // calculate percentage of income spent
+      if (data.totals.inc > 0) {
+        data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+      } else {
+        data.percentage = -1;
+      }
+    },
+    getBudget: function() {
+      return {
+        budget: data.budget,
+        totalInc: data.totals.inc,
+        totalExp: data.totals.exp,
+        percentage: data.percentage
+      };
     }
   };
 })();
@@ -56,7 +86,11 @@ let UIController = (function() {
     inputValue: '.add__value',
     addBtn: '.add__btn',
     incomeList: '.income__list',
-    expensesList: '.expenses__list'
+    expensesList: '.expenses__list',
+    budgetTotal: '.budget__value',
+    incValue: '.budget__income--value',
+    expValue: '.budget__expenses--value',
+    expPercentage: '.budget__expenses--percentage'
   };
 
   return {
@@ -121,6 +155,17 @@ let UIController = (function() {
       // Create an Array copy and then pass callback that will clear field values
       Array.from(fields, field => field.value = '');
       Array.from(fields)[0].focus();
+    },
+    displayBudget: function(budget) {
+      document.querySelector(DOMElements.budgetTotal).textContent = budget.budget;
+      document.querySelector(DOMElements.incValue).textContent = budget.totalInc;
+      document.querySelector(DOMElements.expValue).textContent = budget.totalExp;
+
+      if (budget.percentage > 0) {
+        document.querySelector(DOMElements.expPercentage).textContent = budget.percentage + '%';
+      } else {
+        document.querySelector(DOMElements.expPercentage).textContent = '---';
+      }
     }
   };
 })();
@@ -159,15 +204,27 @@ let appController = (function(budgetCtrl, UICtrl) {
   };
 
   let updateBudget = function() {
-    // 1. calculate the budget
+    let budget;
 
+    // 1. calculate the budget
+    budgetCtrl.calculateBudget();
     // 2. Return the budget
+    budget = budgetCtrl.getBudget();
     // 2. Display the budget
+    UICtrl.displayBudget(budget);
   };
 
   return {
     init: function() {
+      let budget = {
+        budget: 0,
+        totalInc: 0,
+        totalExp: 0,
+        percentage: -1
+      };
+
       console.log('App has started.');
+      UICtrl.displayBudget(budget);
       setEventListeners();
     }
   };
