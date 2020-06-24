@@ -1,6 +1,38 @@
 let budgetController = (function() {
+  let Expense = function(id, description, value) {
+    this.id = id;
+    this.description = description;
+    this.value = value;
+  };
+
+  let Income = function(id, description, value) {
+    this.id = id;
+    this.description = description;
+    this.value = value;
+  };
+
+  let data = {
+    transactions: {
+      exp: [],
+      inc: []
+    },
+    totals: {
+      exp: 0,
+      inc: 0
+    }
+  };
+
   return {
-    // some code
+    addTransaction: function(type, des, val) {
+      let newTransaction, ID;
+      ID = 0;
+
+      if (type === 'exp') {
+        newTransaction = new Expense(ID, des, val);
+      } else {
+        newTransaction = new Income(ID, des, val);
+      }
+    }
   };
 })();
 
@@ -13,7 +45,7 @@ let UIController = (function() {
   };
 
   return {
-    getInput: function() {
+    getInputValues: function() {
       return {
         selectType: document.querySelector(DOMElements.selectType).value,
         inputDescription: document.querySelector(DOMElements.inputDescription).value,
@@ -34,13 +66,13 @@ let appController = (function(budgetCtrl, UICtrl) {
 
     // event listener for key press which occurs globally and not on a particular element
     document.addEventListener('keypress', function(event) {
-      if (event.keyCode === 13) appCtrlAddItem(); 
+      if (event.keyCode === 13) appCtrlAddTransaction(); 
     });
   };
   
-  let appCtrlAddItem = function() {
+  let appCtrlAddTransaction = function() {
       // 1. Get input field value
-      let input = UICtrl.getInput();
+      let input = UICtrl.getInputValues();
       console.log(input);
       // 2. Add item to budget controller
       // 3. Add item to UI
