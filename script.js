@@ -34,6 +34,7 @@ let budgetController = (function() {
   }
 
   return {
+    // testing purposes
     readData: function() {
       console.log(data);
     },
@@ -75,11 +76,16 @@ let budgetController = (function() {
         totalExp: data.totals.exp,
         percentage: data.percentage
       };
+    },
+    deleteTransaction: function(type, id) {
+      // filter out the transaction object by id
+      data.transactions[type] = data.transactions[type].filter(transaction => transaction.id !== id);
     }
   };
 })();
 
 let UIController = (function() {
+  // allow changes to HTML from a central location
   let DOMElements = {
     selectType: '.add__type',
     inputDescription: '.add__description',
@@ -90,7 +96,8 @@ let UIController = (function() {
     budgetTotal: '.budget__value',
     incValue: '.budget__income--value',
     expValue: '.budget__expenses--value',
-    expPercentage: '.budget__expenses--percentage'
+    expPercentage: '.budget__expenses--percentage',
+    transactionsContainer: '.container'
   };
 
   return {
@@ -137,6 +144,10 @@ let UIController = (function() {
       }
       document.querySelector(element).insertAdjacentHTML('beforeend', transactionHTML)
     },
+    removeTransactionHTML: function(HTMLID) {
+      let targetTransactionHTML = document.getElementById(HTMLID);
+      targetTransactionHTML.parentNode.removeChild(targetTransactionHTML);
+    },
     clearFields: function() {
       let fields;
       // let fieldArr;
@@ -180,6 +191,9 @@ let appController = (function(budgetCtrl, UICtrl) {
     document.addEventListener('keypress', function(event) {
       if (event.keyCode === 13) appCtrlAddTransaction(); 
     });
+
+    // parent element for both transaction lists --- Event Delegation
+    document.querySelector(DOMElements.transactionsContainer).addEventListener('click', appCtrlDeleteTransaction);
   };
   
   let appCtrlAddTransaction = function() {
@@ -199,6 +213,38 @@ let appController = (function(budgetCtrl, UICtrl) {
       // 4. Clear input fields
       UICtrl.clearFields();
       // 5. Calculate and update budget
+      updateBudget();
+    }
+  };
+
+  let appCtrlDeleteTransaction = function(event) {
+    let transactionElementID, elementIDArr, type, ID;
+
+    // function to locate parent node by attribute and attribute value
+    let findParentNode = function(element, attr, name) {
+      let parentNode = element.parentNode;
+      while(!parentNode[attr].includes(`${name}`)) {
+        parentNode = parentNode.parentNode;
+      }
+      return parentNode;
+    }
+
+    transactionElementID = findParentNode(event.target, 'id', 'income').id;
+    
+    // transactionElementID = event.target.parentNode.parentNode.parentNode.parentNode.id;
+
+    if (transactionElementID) {
+      elementIDArr = transactionElementID.split('-');
+      type = elementIDArr[0].slice(0, 3); // select "inc" or "exp"
+      ID = parseInt(elementIDArr[1]);
+
+      // delete the transaction from the data structure
+      budgetCtrl.deleteTransaction(type, ID);
+
+      // remove the transaction HTML from the DOM
+      UICtrl.removeTransactionHTML(transactionElementID);
+
+      // update and render new budget
       updateBudget();
     }
   };
