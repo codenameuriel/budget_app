@@ -1,18 +1,42 @@
 // Budget App
 
-let budgetController = (function() {
-  let Expense = function(id, description, value) {
+// budget module
+const budgetController = (function() {
+  // private functions and variables
+
+  // Expense object constructor function
+  const Expense = function(id, description, value) {
+    this.id = id;
+    this.description = description;
+    this.value = value;
+    // percentage that expense transaction represents of the total income
+    // initially set to non-existent value
+    this.percentage = -1;
+  };
+
+  // setter method for Expense object
+  Expense.prototype.calculatePercentage = function(totalIncome) {
+    // want to avoid special numbers like Infinity by dividing by 0 value total income
+    if (totalIncome > 0) {
+      this.percentage = Math.round((this.value / totalIncome) * 100);
+    } else {
+      this.percentage = -1;
+    }
+  };
+
+  // getter method for Expense object
+  Expense.prototype.getPercentage = function() {
+    return this.percentage;
+  };
+
+  // Income object constructor function
+  const Income = function(id, description, value) {
     this.id = id;
     this.description = description;
     this.value = value;
   };
 
-  let Income = function(id, description, value) {
-    this.id = id;
-    this.description = description;
-    this.value = value;
-  };
-
+  // centralized data structure to hold instances and values
   let data = {
     transactions: {
       exp: [],
@@ -23,21 +47,23 @@ let budgetController = (function() {
       inc: 0
     },
     budget: 0,
-    // -1 to represent non-existent value
     percentage: -1
   };
 
-  let calculateTotal = function(type) {
+  // function calculates/sets the total for Expense/Income transaction objects
+  const calculateTotal = function(type) {
     let sum = 0;
     data.transactions[type].forEach(transaction => sum += transaction.value);
     data.totals[type] = sum;
   }
 
+  // public methods
   return {
     // testing purposes
     readData: function() {
       console.log(data);
     },
+    // creates an Expense/Income object with unique ID and returns the created transaction object
     addTransaction: function(type, des, val) {
       let newTransaction, ID;
       
@@ -62,12 +88,22 @@ let budgetController = (function() {
       calculateTotal('inc');
       // calculate budget (income - expenses)
       data.budget = data.totals.inc - data.totals.exp;
-      // calculate percentage of income spent
+      // calculate total percentage of income spent
+      // conditional avoids special numbers
       if (data.totals.inc > 0) {
         data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
       } else {
         data.percentage = -1;
       }
+    },
+    calculateAllPercentages: function() {
+      // calculates expense percentage for each Expense object
+      data.transactions.exp.forEach(transaction =>
+        transaction.calculatePercentage(data.totals.inc)
+      );
+    },
+    getAllPercentages: function() {
+      return data.transactions.exp.map(transaction => transaction.getPercentage());
     },
     getBudget: function() {
       return {
@@ -84,7 +120,8 @@ let budgetController = (function() {
   };
 })();
 
-let UIController = (function() {
+// user interface module
+const UIController = (function() {
   // allow changes to HTML from a central location
   let DOMElements = {
     selectType: '.add__type',
@@ -96,10 +133,52 @@ let UIController = (function() {
     budgetTotal: '.budget__value',
     incValue: '.budget__income--value',
     expValue: '.budget__expenses--value',
-    expPercentage: '.budget__expenses--percentage',
-    transactionsContainer: '.container'
+    globalExpPercentage: '.budget__expenses--percentage',
+    transactionsContainer: '.container',
+    expPercentage: '.item__percentage'
   };
 
+  const formatNumber = function(num, type) {
+    let numSplit, intArr, int, decimal, sign;
+
+    // get absolute value of the number
+    num = Math.abs(num);
+    // convert number to a string with two decimals appended
+    num = num.toFixed(2);
+
+    // split the number string by the decimal point
+    numSplit = num.split('.');
+    // the integer is the first element in the split array
+    intArr = numSplit[0].split('');
+
+    if (intArr.length > 3) {
+      let numberOfCommas, index;
+
+      if (intArr.length % 3 === 0) {
+        numberOfCommas = (intArr.length / 3) - 1;
+        index = 3;
+      } else {
+        numberOfCommas = Math.floor(intArr.length / 3);
+        index = intArr.length % 3;
+      }
+
+      for (let i = 0; i < numberOfCommas; i++) {
+        intArr.splice(index, 0 , ',');
+        index += 4;
+      }
+    }
+
+    int = intArr.join('');
+
+    // decimal values of the num string
+    decimal = numSplit[1];
+
+    type === 'exp' ? sign = '-' : sign = '+';
+
+    return `${sign} ${int}.${decimal}`
+  };
+
+  // public methods
   return {
     getInputValues: function() {
       return {
@@ -120,7 +199,7 @@ let UIController = (function() {
           <div class="item clearfix" id="income-${transaction.id}">
             <div class="item__description">${transaction.description}</div>
             <div class="right clearfix">
-              <div class="item__value">+ ${transaction.value}</div>
+              <div class="item__value">${formatNumber(transaction.value, type)}</div>
               <div class="item__delete">
                 <button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button>
               </div>
@@ -133,8 +212,8 @@ let UIController = (function() {
           <div class="item clearfix" id="expense-${transaction.id}">
             <div class="item__description">${transaction.description}</div>
             <div class="right clearfix">
-              <div class="item__value">- ${transaction.value}</div>
-              <div class="item__percentage">21%</div>
+              <div class="item__value">${formatNumber(transaction.value, type)}</div>
+              <div class="item__percentage">${transaction.percentage}</div>
               <div class="item__delete">
                 <button class="item__delete--btn"><i class="ion-ios-close-outline"></i></button>
               </div>
@@ -163,26 +242,50 @@ let UIController = (function() {
       //   field.value = '';
       // });
 
-      // Create an Array copy and then pass callback that will clear field values
+      // Create an Array copy and then invoke callback that will clear field values
       Array.from(fields, field => field.value = '');
+      // set the focus back on the first input field
       Array.from(fields)[0].focus();
     },
     displayBudget: function(budget) {
-      document.querySelector(DOMElements.budgetTotal).textContent = budget.budget;
-      document.querySelector(DOMElements.incValue).textContent = budget.totalInc;
-      document.querySelector(DOMElements.expValue).textContent = budget.totalExp;
+      let type;
+
+      budget.budget > 0 ? type = 'inc' : type = 'exp';
+
+      document.querySelector(DOMElements.budgetTotal).textContent = formatNumber(budget.budget, type);
+      document.querySelector(DOMElements.incValue).textContent = formatNumber(budget.totalInc, 'inc');
+      document.querySelector(DOMElements.expValue).textContent = formatNumber(budget.totalExp, 'exp');
 
       if (budget.percentage > 0) {
-        document.querySelector(DOMElements.expPercentage).textContent = budget.percentage + '%';
+        document.querySelector(DOMElements.globalExpPercentage).textContent = budget.percentage + '%';
       } else {
-        document.querySelector(DOMElements.expPercentage).textContent = '---';
+        document.querySelector(DOMElements.globalExpPercentage).textContent = '---';
       }
+    },
+    displayExpensePercentages: function(percentages) {
+      // NodeList of all HTML divs that display the percentage of the total income that each Expense transaction represents
+      let expensePercentageFields = document.querySelectorAll(DOMElements.expPercentage);
+
+      const nodeListForEach = function(list, callback) {
+        for (let i = 0; i < list.length; i++) {
+          callback(list[i], i);
+        }
+      };
+
+      nodeListForEach(expensePercentageFields, function(field, index) {
+        if (percentages[index] > 0) {
+          field.textContent = `${percentages[index]}%`;
+        } else {
+          field.textContent = '---';
+        }
+      });
     }
   };
 })();
 
-let appController = (function(budgetCtrl, UICtrl) {
-  let setEventListeners = function() {
+// application module
+const appController = (function(budgetCtrl, UICtrl) {
+  const setEventListeners = function() {
     let DOMElements = UICtrl.getDOMElements();
 
     document.querySelector(DOMElements.addBtn).addEventListener('click', appCtrlAddTransaction);
@@ -196,40 +299,45 @@ let appController = (function(budgetCtrl, UICtrl) {
     document.querySelector(DOMElements.transactionsContainer).addEventListener('click', appCtrlDeleteTransaction);
   };
   
-  let appCtrlAddTransaction = function() {
+  const appCtrlAddTransaction = function() {
     let input, newTransaction;
 
     // 1. Get input field value
     input = UICtrl.getInputValues();
-    console.log(input);
+    //console.log(input);
 
-    // transaction will be added unless there is no description and the value field is empty or 0
+    // transaction will be added unless there is no description and/or the value field is empty or 0
     if (input.inputDescription !== '' && !isNaN(input.inputValue) && input.inputValue > 0) {
       // 2. Add item to budget controller
       newTransaction = budgetCtrl.addTransaction(input.selectType, input.inputDescription, input.inputValue);
-      console.log(newTransaction);
+      //console.log(newTransaction);
       // 3. Add item to UI
       UICtrl.renderTransactionHTML(newTransaction, input.selectType);
       // 4. Clear input fields
       UICtrl.clearFields();
       // 5. Calculate and update budget
       updateBudget();
+      // update expense transactions percentages
+      updateExpensesPercentage();
     }
   };
 
-  let appCtrlDeleteTransaction = function(event) {
+  const appCtrlDeleteTransaction = function(event) {
     let transactionElementID, elementIDArr, type, ID;
 
     // function to locate parent node by attribute and attribute value
-    let findParentNode = function(element, attr, name) {
+    const findParentNode = function(element) {
       let parentNode = element.parentNode;
-      while(!parentNode[attr].includes(`${name}`)) {
+      //console.log(parentNode);
+      while (true) {
+        if (parentNode.id.includes('income') || parentNode.id.includes('expense')) break;
         parentNode = parentNode.parentNode;
       }
+      //console.log(parentNode);
       return parentNode;
     }
 
-    transactionElementID = findParentNode(event.target, 'id', 'income').id;
+    transactionElementID = findParentNode(event.target).id;
     
     // transactionElementID = event.target.parentNode.parentNode.parentNode.parentNode.id;
 
@@ -246,18 +354,28 @@ let appController = (function(budgetCtrl, UICtrl) {
 
       // update and render new budget
       updateBudget();
+
+      // update and render expenses percentage
+      updateExpensesPercentage();
     }
   };
 
-  let updateBudget = function() {
-    let budget;
-
+  const updateBudget = function() {
     // 1. calculate the budget
     budgetCtrl.calculateBudget();
     // 2. Return the budget
-    budget = budgetCtrl.getBudget();
+    let budget = budgetCtrl.getBudget();
     // 2. Display the budget
     UICtrl.displayBudget(budget);
+  };
+
+  const updateExpensesPercentage = function() {
+    // calculate percentages
+    budgetCtrl.calculateAllPercentages();
+    // read percentages from budget controller
+    let percentages = budgetCtrl.getAllPercentages();
+    // update UI with new percentages
+    UICtrl.displayExpensePercentages(percentages);
   };
 
   return {
