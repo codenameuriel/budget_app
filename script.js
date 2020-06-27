@@ -18,7 +18,9 @@ const budgetController = (function() {
   Expense.prototype.calculatePercentage = function(totalIncome) {
     // want to avoid special numbers like Infinity by dividing by 0 value total income
     if (totalIncome > 0) {
-      this.percentage = Math.round((this.value / totalIncome) * 100);
+      //this.percentage = Math.round((this.value / totalIncome) * 100);
+      let percentage = ((this.value / totalIncome) * 100).toFixed(1);
+      this.percentage = parseFloat(percentage);
     } else {
       this.percentage = -1;
     }
@@ -36,7 +38,7 @@ const budgetController = (function() {
     this.value = value;
   };
 
-  // centralized data structure to hold instances and values
+  // centralized data structure to hold Expense/Income objects and values
   let data = {
     transactions: {
       exp: [],
@@ -66,43 +68,53 @@ const budgetController = (function() {
     // creates an Expense/Income object with unique ID and returns the created transaction object
     addTransaction: function(type, des, val) {
       let newTransaction, ID;
-      
+
+      // if transactions already exist, then will create ID based on their ID values
       if (data.transactions[type].length > 0) {
+        // assign new ID to last transaction object's ID + 1 for the new transaction object
         ID = data.transactions[type][data.transactions[type].length - 1].id + 1;
       } else {
         ID = 0;
       }
 
+      // will create transaction object based on the type of transaction
       if (type === 'exp') {
         newTransaction = new Expense(ID, des, val);
       } else {
         newTransaction = new Income(ID, des, val);
       }
 
+      // adding the new transaction object to the data structure to store it
       data.transactions[type].push(newTransaction);
+
       return newTransaction;
     },
     calculateBudget: function() {
       // calculate total income and expenses
       calculateTotal('exp');
       calculateTotal('inc');
-      // calculate budget (income - expenses)
+
+      // calculate budget (total income - total expenses)
       data.budget = data.totals.inc - data.totals.exp;
+
       // calculate total percentage of income spent
-      // conditional avoids special numbers
+      // conditional avoids dividing by 0
       if (data.totals.inc > 0) {
-        data.percentage = Math.round((data.totals.exp / data.totals.inc) * 100);
+        let percentage = ((data.totals.exp / data.totals.inc) * 100).toFixed(1);
+        data.percentage = parseFloat(percentage);
       } else {
         data.percentage = -1;
       }
     },
     calculateAllPercentages: function() {
-      // calculates expense percentage for each Expense object
+      // calculates percentage of total income spent by each Expense object
       data.transactions.exp.forEach(transaction =>
+        // sets the percentage property for each Expense object using the total income value
         transaction.calculatePercentage(data.totals.inc)
       );
     },
     getAllPercentages: function() {
+      // gets percentage values from each Expense object
       return data.transactions.exp.map(transaction => transaction.getPercentage());
     },
     getBudget: function() {
@@ -139,44 +151,59 @@ const UIController = (function() {
     dateLabel: '.budget__title--month'
   };
 
+  // formats integer to follow (+/- x,xxx.xx) structure
   const formatNumber = function(num, type) {
-    let numSplit, intArr, int, decimal, sign;
+    let numSplit, numArr, numString, decimal, sign;
 
     // get absolute value of the number
-    num = Math.abs(num);
-    // convert number to a string with two decimals appended
+    //num = Math.abs(num);
+
+    // redefine parameter to equal the value passed in and converted to a string with decimal
+    // convert number to a string with two decimals appended (5 -> '5.00')
     num = num.toFixed(2);
 
     // split the number string by the decimal point
     numSplit = num.split('.');
-    // the integer is the first element in the split array
-    intArr = numSplit[0].split('');
+    // the original number is the first element in the split array
+    // the number string is split by each digit into another array
+    numArr = numSplit[0].split('');
 
-    if (intArr.length > 3) {
+    // check for thousands place
+    if (numArr.length > 3) {
       let numberOfCommas, index;
 
-      if (intArr.length % 3 === 0) {
-        numberOfCommas = (intArr.length / 3) - 1;
+      // if the total amount of numbers divided by 3 (thousands) has no remainders
+      // then the amount of commas needed will be the quotient - 1
+      // the index where the splice method will insert the first comma will be 3
+      // otherwise, if the total amount of numbers divided by 3 has a remainder
+      // then the total amount of commas will be quotient rounded down
+      // and the first comma will be inserted at the remainder value index
+      if (numArr.length % 3 === 0) {
+        numberOfCommas = (numArr.length / 3) - 1;
         index = 3;
       } else {
-        numberOfCommas = Math.floor(intArr.length / 3);
-        index = intArr.length % 3;
+        numberOfCommas = Math.floor(numArr.length / 3);
+        index = numArr.length % 3;
       }
 
+      // loop iterates the amount of times equal to how many commas need to be inserted
+      // starts at the index value and inserts subsequent commas at the previous index value + 4
+      // to account for added comma into the number array
       for (let i = 0; i < numberOfCommas; i++) {
-        intArr.splice(index, 0 , ',');
+        numArr.splice(index, 0 , ',');
         index += 4;
       }
     }
 
-    int = intArr.join('');
+    // joins the number array with inserted commas
+    numString = numArr.join('');
 
     // decimal values of the num string
     decimal = numSplit[1];
 
     type === 'exp' ? sign = '-' : sign = '+';
 
-    return `${sign} ${int}.${decimal}`
+    return `${sign} ${numString}.${decimal}`
   };
 
   // public methods
@@ -291,6 +318,9 @@ const UIController = (function() {
       year = dateNow.getFullYear();
 
       document.querySelector(DOMElements.dateLabel).textContent = `${months[month]} ${year}`;
+    },
+    changeSelectType: function() {
+
     }
   };
 })();
@@ -309,6 +339,9 @@ const appController = (function(budgetCtrl, UICtrl) {
 
     // parent element for both transaction lists --- Event Delegation
     document.querySelector(DOMElements.transactionsContainer).addEventListener('click', appCtrlDeleteTransaction);
+
+    // event listener for select form to change border color to denote type of transaction
+    document.querySelector(DOMElements.selectType).addEventListener('change', UICtrl.changeSelectType);
   };
   
   const appCtrlAddTransaction = function() {
