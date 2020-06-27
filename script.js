@@ -155,8 +155,8 @@ const UIController = (function() {
   const formatNumber = function(num, type) {
     let numSplit, numArr, numString, decimal, sign;
 
-    // get absolute value of the number
-    //num = Math.abs(num);
+    // get absolute value of the number (budget can be negative)
+    num = Math.abs(num);
 
     // redefine parameter to equal the value passed in and converted to a string with decimal
     // convert number to a string with two decimals appended (5 -> '5.00')
@@ -206,6 +206,12 @@ const UIController = (function() {
     return `${sign} ${numString}.${decimal}`
   };
 
+  const nodeListForEach = function(list, callback) {
+    for (let i = 0; i < list.length; i++) {
+      callback(list[i], i);
+    }
+  };
+
   // public methods
   return {
     getInputValues: function() {
@@ -249,6 +255,7 @@ const UIController = (function() {
           </div>
         `
       }
+      // appends the transaction html as the last child inside the parent html
       document.querySelector(element).insertAdjacentHTML('beforeend', transactionHTML)
     },
     removeTransactionHTML: function(HTMLID) {
@@ -294,12 +301,6 @@ const UIController = (function() {
       // NodeList of all HTML divs that display the percentage of the total income that each Expense transaction represents
       let expensePercentageFields = document.querySelectorAll(DOMElements.expPercentage);
 
-      const nodeListForEach = function(list, callback) {
-        for (let i = 0; i < list.length; i++) {
-          callback(list[i], i);
-        }
-      };
-
       nodeListForEach(expensePercentageFields, function(field, index) {
         if (percentages[index] > 0) {
           field.textContent = `${percentages[index]}%`;
@@ -312,7 +313,7 @@ const UIController = (function() {
       let dateNow, year, months, month;
 
       months = ['January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December']
+        'July', 'August', 'September', 'October', 'November', 'December'];
       dateNow = new Date();
       month = dateNow.getMonth();
       year = dateNow.getFullYear();
@@ -320,7 +321,15 @@ const UIController = (function() {
       document.querySelector(DOMElements.dateLabel).textContent = `${months[month]} ${year}`;
     },
     changeSelectType: function() {
+      let fields = document.querySelectorAll(`${DOMElements.selectType}, ${DOMElements.inputDescription
+      }, ${DOMElements.inputValue}`);
 
+      nodeListForEach(fields, function(field) {
+        // add or remove class on change of the select value
+        field.classList.toggle('red-focus');
+      });
+
+      document.querySelector(DOMElements.addBtn).classList.toggle('red');
     }
   };
 })();
@@ -334,7 +343,7 @@ const appController = (function(budgetCtrl, UICtrl) {
 
     // event listener for key press which occurs globally and not on a particular element
     document.addEventListener('keypress', function(event) {
-      if (event.keyCode === 13) appCtrlAddTransaction(); 
+      if (event.key === 'Enter') appCtrlAddTransaction();
     });
 
     // parent element for both transaction lists --- Event Delegation
@@ -370,7 +379,7 @@ const appController = (function(budgetCtrl, UICtrl) {
   const appCtrlDeleteTransaction = function(event) {
     let transactionElementID, elementIDArr, type, ID;
 
-    // function to locate parent node by attribute and attribute value
+    // function to locate parent node
     const findParentNode = function(element) {
       let parentNode = element.parentNode;
       //console.log(parentNode);
@@ -393,24 +402,21 @@ const appController = (function(budgetCtrl, UICtrl) {
 
       // delete the transaction from the data structure
       budgetCtrl.deleteTransaction(type, ID);
-
       // remove the transaction HTML from the DOM
       UICtrl.removeTransactionHTML(transactionElementID);
-
       // update and render new budget
       updateBudget();
-
       // update and render expenses percentage
       updateExpensesPercentage();
     }
   };
 
   const updateBudget = function() {
-    // 1. calculate the budget
+    // calculate the budget
     budgetCtrl.calculateBudget();
-    // 2. Return the budget
+    // Return the budget
     let budget = budgetCtrl.getBudget();
-    // 2. Display the budget
+    // Display the budget
     UICtrl.displayBudget(budget);
   };
 
