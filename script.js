@@ -135,7 +135,8 @@ const UIController = (function() {
     expValue: '.budget__expenses--value',
     globalExpPercentage: '.budget__expenses--percentage',
     transactionsContainer: '.container',
-    expPercentage: '.item__percentage'
+    expPercentage: '.item__percentage',
+    dateLabel: '.budget__title--month'
   };
 
   const formatNumber = function(num, type) {
@@ -234,7 +235,7 @@ const UIController = (function() {
       // returns a LIST (not an ARRAY)
       fields = document.querySelectorAll(`${DOMElements.inputValue}, ${DOMElements.inputDescription}`);
 
-      // // 'call' method will allow the LIST object to method borrow 'slice' and immediately invoke the slice method on it creating an ARRAY copy
+      // 'call' method will allow the LIST object to method borrow 'slice' and immediately invoke the slice method on it creating an ARRAY copy
       // fieldsArr = Array.prototype.slice.call(fields);
 
       // // clear all fields
@@ -279,6 +280,17 @@ const UIController = (function() {
           field.textContent = '---';
         }
       });
+    },
+    displayDate: function() {
+      let dateNow, year, months, month;
+
+      months = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December']
+      dateNow = new Date();
+      month = dateNow.getMonth();
+      year = dateNow.getFullYear();
+
+      document.querySelector(DOMElements.dateLabel).textContent = `${months[month]} ${year}`;
     }
   };
 })();
@@ -388,6 +400,7 @@ const appController = (function(budgetCtrl, UICtrl) {
       };
 
       console.log('App has started.');
+      UICtrl.displayDate();
       UICtrl.displayBudget(budget);
       setEventListeners();
     }
