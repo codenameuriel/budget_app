@@ -112,7 +112,7 @@ body {
 /***** FORM *****/
 .add {
     padding: 14px;
-    border-bottom: 1px solid #181818;
+    border-bottom: 1px solid #646464;
     background-color: #222222;
 }
 
@@ -123,7 +123,8 @@ body {
 
 .add__type {
     width: 55px;
-    border: 1px solid #272727;
+    /*border: 1px solid #272727;*/
+    border: 1px solid #646464;
     height: 44px;
     font-size: 18px;
     color: inherit;
@@ -135,7 +136,7 @@ body {
 
 .add__description,
 .add__value {
-    border: 1px solid #272727;
+    border: 1px solid #646464;
     background-color: #272727;
     color: inherit;
     font-family: inherit;
@@ -201,10 +202,12 @@ h2 {
 
 .item {
     padding: 13px;
-    border-bottom: 1px solid #fff;
+    /*border-bottom: 1px solid #fff;*/
+    border-bottom: 1px solid #646464;
 }
 
-.item:first-child { border-top: 1px solid #fff; }
+/*.item:first-child { border-top: 1px solid #fff; }*/
+.item:first-child { border-top: 1px solid #646464; }
 .item:nth-child(even) { background-color: #181818; }
 
 .item__description {
@@ -273,4 +276,3 @@ h2 {
 
 .unpaid .item__percentage { box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.1); }
 .unpaid:hover .item__description { font-weight: 900; }
-
